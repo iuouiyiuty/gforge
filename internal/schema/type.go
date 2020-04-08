@@ -13,7 +13,7 @@ const (
 	cTypeTime    = "time.Time"
 	cTypeInt8    = "int8"
 	cTypeUInt64  = "uint64"
-	cTypeByte    = "byte"
+	cTypeByte    = "uint8"
 	cUnsigned    = "unsigned"
 
 	cNullInt    = "null.Int"
