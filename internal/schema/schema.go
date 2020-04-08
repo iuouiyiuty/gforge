@@ -23,7 +23,7 @@ func readTableStruct(db *sql.DB, tableName string, dbName string) (columnSlice, 
 		"TABLE_NAME":   tableName,
 		"TABLE_SCHEMA": dbName,
 	}
-	var selectFields = []string{"COLUMN_NAME", "COLUMN_TYPE", "COLUMN_COMMENT"}
+	var selectFields = []string{"COLUMN_NAME", "COLUMN_TYPE", "COLUMN_COMMENT", "IS_NULLABLE"}
 	cond, vals, err := builder.BuildSelect(cDefaultTable, where, selectFields)
 	if nil != err {
 		return nil, err
@@ -57,7 +57,7 @@ func createStructSourceCode(cols columnSlice, tableName string) (io.Reader, stri
 		fillData.FieldList[idx] = sourceColumn{
 			Name:      col.GetName(),
 			Type:      colType,
-			StructTag: fmt.Sprintf("`json:\"%s\"`", col.Name),
+			StructTag: fmt.Sprintf("`xorm:\"%s\"`", col.Name),
 		}
 	}
 	var buff bytes.Buffer
@@ -86,5 +86,9 @@ type {{.StructName}} struct {
 {{- range .FieldList }}
 	{{ .Name }} {{ .Type }} {{ .StructTag }}
 {{- end}}
+}
+
+func ({{.StructName}}) TableName() string {
+	return "{{.TableName}}"
 }
 `

@@ -15,6 +15,12 @@ const (
 	cTypeUInt64  = "uint64"
 	cTypeByte    = "byte"
 	cUnsigned    = "unsigned"
+
+	cNullInt    = "null.Int"
+	cNullBool   = "null.Bool"
+	cNullString = "null.String"
+	cNullFloat  = "null.Float"
+	cNullTime   = "null.Time"
 )
 
 //Typer holds two methods allow user easilly get the information of a type
