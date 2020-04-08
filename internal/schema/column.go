@@ -14,6 +14,8 @@ type column struct {
 	Type       string `json:"COLUMN_TYPE"`
 	Comment    string `json:"COLUMN_COMMENT"`
 	IsNullable string `json:"IS_NULLABLE"`
+	Key        string `json:"COLUMN_KEY"`
+	Extra      string `json:"EXTRA"`
 }
 
 //GetType returns which built in type the column should be in generated go code
@@ -44,6 +46,14 @@ func (c *column) GetName() string {
 
 func (c *column) GetIsNullable() bool {
 	return c.IsNullable == "YES"
+}
+
+func (c *column) IsPk() bool {
+	return c.Key == "PRI"
+}
+
+func (c *column) IsAutoIncr() bool {
+	return c.Extra == "auto_increment"
 }
 
 func getType(t string) string {

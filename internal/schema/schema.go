@@ -23,7 +23,7 @@ func readTableStruct(db *sql.DB, tableName string, dbName string) (columnSlice, 
 		"TABLE_NAME":   tableName,
 		"TABLE_SCHEMA": dbName,
 	}
-	var selectFields = []string{"COLUMN_NAME", "COLUMN_TYPE", "COLUMN_COMMENT", "IS_NULLABLE"}
+	var selectFields = []string{"COLUMN_NAME", "COLUMN_TYPE", "COLUMN_COMMENT", "IS_NULLABLE", "COLUMN_KEY", "EXTRA"}
 	cond, vals, err := builder.BuildSelect(cDefaultTable, where, selectFields)
 	if nil != err {
 		return nil, err
@@ -58,6 +58,9 @@ func createStructSourceCode(cols columnSlice, tableName string) (io.Reader, stri
 			Name:      col.GetName(),
 			Type:      colType,
 			StructTag: fmt.Sprintf("`xorm:\"%s\"`", col.Name),
+		}
+		if col.IsPk() && col.IsAutoIncr() {
+			fillData.FieldList[idx].StructTag = fmt.Sprintf("`xorm:\"%s pk autoincr\"`", col.Name)
 		}
 	}
 	var buff bytes.Buffer
