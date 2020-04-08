@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/caibirdme/gforge/internal/dao"
-	"github.com/caibirdme/gforge/internal/schema"
 	"github.com/didi/gendry/manager"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/iuouiyiuty/gforge/internal/dao"
+	"github.com/iuouiyiuty/gforge/internal/schema"
 	"github.com/mkideal/cli"
 )
 
