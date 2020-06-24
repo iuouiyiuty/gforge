@@ -8,104 +8,147 @@ import (
 
 const (
 	daoCode = `
-	//GetOne gets one record from table {{.TableName}} by condition "where"
-	func GetOne(db *sql.DB, where map[string]interface{}) (*{{.StructName}}, error) {
-		if nil == db {
-			return nil, errors.New("sql.DB object couldn't be nil")
+
+	func (d *Dao) {{.StructName}}DB(ctx context.Context, id int64) (*{{.StructPkg}}{{.StructName}}, error) {
+		db := d.db.Context(ctx)
+
+		var res {{.StructPkg}}{{.StructName}}
+
+		err := db.Table(res.TableName()).Where("id = ?", id).Take(&res).Error
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
 		}
-		cond,vals,err := builder.BuildSelect("{{.TableName}}", where, nil)
-		if nil != err {
-			return nil, err
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		row,err := db.Query(cond, vals...)
-		if nil != err || nil == row {
-			return nil, err
-		}
-		defer row.Close()
-		var res *{{.StructName}}
-		err = scanner.Scan(row, &res)
-		return res,err
+	
+		return &res, nil
 	}
 
-	//GetMulti gets multiple records from table {{.TableName}} by condition "where"
-	func GetMulti(db *sql.DB, where map[string]interface{}) ([]*{{.StructName}}, error) {
-		if nil == db {
-			return nil, errors.New("sql.DB object couldn't be nil")
+	func (d *Dao) {{.StructName}}GetOne(ctx context.Context, where map[string]interface{}) (*{{.StructPkg}}{{.StructName}}, error) {
+		db := d.db.Context(ctx)
+
+		var res {{.StructPkg}}{{.StructName}}
+
+		err := db.Table(res.TableName()).Where(where).Take(&res).Error
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
 		}
-		cond,vals,err := builder.BuildSelect("{{.TableName}}", where, nil)
-		if nil != err {
-			return nil, err
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		row,err := db.Query(cond, vals...)
-		if nil != err || nil == row {
-			return nil, err
-		}
-		defer row.Close()
-		var res []*{{.StructName}}
-		err = scanner.Scan(row, &res)
-		return res,err
+	
+		return &res, nil
 	}
 
-	//Insert inserts an array of data into table {{.TableName}}
-	func Insert(db *sql.DB, data []map[string]interface{}) (int64, error) {
-		if nil == db {
-			return 0, errors.New("sql.DB object couldn't be nil")
+	func (d *Dao) {{.StructName}}List(ctx context.Context, where map[string]interface{}) ([]*{{.StructPkg}}{{.StructName}}, error) {
+		db := d.db.Context(ctx)
+
+		var res []*{{.StructPkg}}{{.StructName}}
+
+		err := db.Table({{.StructPkg}}{{.StructName}}{}.TableName()).Where(where).Find(&res).Error
+		if gorm.IsRecordNotFoundError(err) {
+			return nil, nil
 		}
-		cond, vals, err := builder.BuildInsert("{{.TableName}}", data)
-		if nil != err {
-			return 0, err
+		if err != nil {
+			return nil, errors.WithStack(err)
 		}
-		result,err := db.Exec(cond, vals...)
-		if nil != err || nil == result {
-			return 0, err
-		}
-		return result.LastInsertId()
+	
+		return res, nil
 	}
 
-	//Update updates the table {{.TableName}}
-	func Update(db *sql.DB, where,data map[string]interface{}) (int64, error) {
-		if nil == db {
-			return 0, errors.New("sql.DB object couldn't be nil")
+	func (d *Dao) {{.StructName}}Insert(ctx context.Context, tx *gorm.DB, row *{{.StructPkg}}{{.StructName}}) (err error) {
+		if tx == nil {
+			tx = d.db.Context(ctx).Begin()
 		}
-		cond,vals,err := builder.BuildUpdate("{{.TableName}}", where, data)
-		if nil != err {
-			return 0, err
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+			if err != nil {
+				tx.Rollback()
+			}
+			err = errors.WithStack(tx.Commit().Error)
+		}()
+	
+		if tx.NewRecord(row) {
+			err = errors.WithStack(tx.Create(row).Error)
 		}
-		result,err := db.Exec(cond, vals...)
-		if nil != err {
-			return 0, err
-		}
-		return result.RowsAffected()
+	
+		return
 	}
 
-	// Delete deletes matched records in {{.TableName}}
-	func Delete(db *sql.DB, where,data map[string]interface{}) (int64, error) {
-		if nil == db {
-			return 0, errors.New("sql.DB object couldn't be nil")
+	// 更新指定字段，有updated_at的话需要手动指定
+	func (d *Dao) {{.StructName}}Update(ctx context.Context, tx *gorm.DB, where map[string]interface{}, update map[string]interface{}) (affected int64, err error) {
+		if tx == nil {
+			tx = d.db.Context(ctx).Begin()
 		}
-		cond,vals,err := builder.BuildDelete("{{.TableName}}", where)
-		if nil != err {
-			return 0, err
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+			if err != nil {
+				tx.Rollback()
+			}
+			err = errors.WithStack(tx.Commit().Error)
+		}()
+	
+		db := tx.Table({{.StructPkg}}{{.StructName}}{}.TableName()).Where(where).Updates(update)
+		if db.Error != nil {
+			err = errors.WithStack(db.Error)
+			return
 		}
-		result,err := db.Exec(cond, vals...)
-		if nil != err {
-			return 0, err
-		}
-		return result.RowsAffected()
+	
+		affected = db.RowsAffected
+	
+		return
 	}
+
+	// 慎用，一般都是软删除
+	func (d *Dao) {{.StructName}}Delete(ctx context.Context, tx *gorm.DB, where map[string]interface{}) (affected int64, err error) {
+		if tx == nil {
+			tx = d.db.Context(ctx).Begin()
+		}
+		defer func() {
+			if r := recover(); r != nil {
+				tx.Rollback()
+			}
+			if err != nil {
+				tx.Rollback()
+			}
+			err = errors.WithStack(tx.Commit().Error)
+		}()
+	
+		db := tx.Where(where).Delete({{.StructPkg}}{{.StructName}}{})
+		if db.Error != nil {
+			err = errors.WithStack(db.Error)
+			return
+		}
+	
+		affected = db.RowsAffected
+	
+		return
+	}
+	
 	`
 )
 
 type fillData struct {
 	StructName string
+	StructPkg  string
 	TableName  string
 }
 
 // GenerateDao generates Dao code
-func GenerateDao(tableName, structName string) (io.Reader, error) {
+func GenerateDao(tableName, structName string, structPkg string) (io.Reader, error) {
+	if structPkg != "" {
+		// add dot
+		structPkg += "."
+	}
 	var buff bytes.Buffer
 	err := template.Must(template.New("dao").Parse(daoCode)).Execute(&buff, fillData{
 		StructName: structName,
+		StructPkg:  structPkg,
 		TableName:  tableName,
 	})
 	if nil != err {
