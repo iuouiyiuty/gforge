@@ -3,7 +3,6 @@ package schema
 import (
 	"bytes"
 	"database/sql"
-	"fmt"
 	"io"
 	"text/template"
 
@@ -55,12 +54,13 @@ func createStructSourceCode(cols columnSlice, tableName string) (io.Reader, stri
 			continue
 		}
 		fillData.FieldList[idx] = sourceColumn{
-			Name:      col.GetName(),
-			Type:      colType,
-			StructTag: fmt.Sprintf("`xorm:\"%s\"`", col.Name),
+			Name: col.GetName(),
+			Type: colType,
+			//StructTag: fmt.Sprintf("`xorm:\"%s\"`", col.Name),
 		}
 		if col.IsPk() && col.IsAutoIncr() {
-			fillData.FieldList[idx].StructTag = fmt.Sprintf("`xorm:\"%s pk autoincr\"`", col.Name)
+			//fillData.FieldList[idx].StructTag = fmt.Sprintf("`xorm:\"%s pk autoincr\"`", col.Name)
+			fillData.FieldList[idx].StructTag = "gorm:\"primary_key\""
 		}
 	}
 	var buff bytes.Buffer
