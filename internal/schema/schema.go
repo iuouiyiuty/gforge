@@ -60,7 +60,7 @@ func createStructSourceCode(cols columnSlice, tableName string) (io.Reader, stri
 		}
 		if col.IsPk() && col.IsAutoIncr() {
 			//fillData.FieldList[idx].StructTag = fmt.Sprintf("`xorm:\"%s pk autoincr\"`", col.Name)
-			fillData.FieldList[idx].StructTag = "gorm:\"primary_key\""
+			fillData.FieldList[idx].StructTag = "`gorm:\"primary_key\"`"
 		}
 	}
 	var buff bytes.Buffer
